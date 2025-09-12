@@ -40,6 +40,10 @@ class FileManager:
         return self._runtime_dir
     
     @property
+    def clipboard_preset_path(self) -> Path:
+        return self._clipboard_preset_path
+    
+    @property
     def history_file_dir(self) -> Path:
         return self._history_file_dir
     
@@ -90,6 +94,7 @@ class FileManager:
         self._history_file_dir = self._app_data_dir / "runtime" / "history_file"
         self._sync_meta_path = self._runtime_dir / ".sync.json"
         self._history_meta_path = self._runtime_dir / ".history.json"
+        self._clipboard_preset_path = self._runtime_dir / "clipboard_preset.json"
     
     def ensure_app_dir_structure(self):
         self.ensure_dir(self._app_data_dir)
@@ -98,6 +103,7 @@ class FileManager:
         self.ensure_dir(self._history_file_dir)
         self.ensure_json(self._sync_meta_path)
         self.ensure_json(self._history_meta_path)
+        self.ensure_json(self._clipboard_preset_path)
         
     def write_json(self, file_path: str, data: dict):
         with open(file_path, 'w', encoding='utf-8') as f:

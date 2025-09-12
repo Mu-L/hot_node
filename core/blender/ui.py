@@ -13,12 +13,6 @@ from ...utils import constants
 from ...utils import utils
 from .ui_context import UIContext, UIPreset
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from ..context.pack import Pack
-    from ..context.preset import Preset
-    from ..blender.user_pref import HotNodeUserPrefs
-
 
 class HOTNODE_MT_merged_add_nodes_packs(Menu):
     """A menu shows a pack's presets for user to get / modify / create / ..."""
@@ -633,7 +627,6 @@ class HOTNODE_PT_main(Panel):
         # Preset Usage UI
         layout.separator(factor=0.1)
         row = layout.row()
-        # row.scale_y = 1.25
         ops = row.operator("hotnode.add_preset_nodes_to_tree", text="Get")
         ops.preset_name = preset_selected_name
         ops.pack_name = pack_selected_name
@@ -641,6 +634,13 @@ class HOTNODE_PT_main(Panel):
         ops = row.operator("hotnode.overwrite_preset_with_selection", icon='GREASEPENCIL', text="")
         ops.preset_name = preset_selected_name
         ops.pack_name = pack_selected_name
+        
+        row = layout.row(align=True)
+        row.operator("hotnode.overwrite_clipboard_preset", icon='COPYDOWN', text="Copy Nodes")
+        ops = row.operator("hotnode.add_preset_nodes_to_tree", icon='PASTEDOWN', text="Paste Nodes")
+        ops.is_paste_from_clipboard = True
+        row.separator(factor=1.4)
+        row.label(icon='BLANK1', text="")
     
     def draw_addon_new_version_info(self, layout: UILayout, user_prefs):
         layout.separator(factor=0.5)
@@ -674,7 +674,7 @@ class HOTNODE_PT_main(Panel):
         col.separator()
         row = col.row()
         row.alignment = 'CENTER'
-        row.prop(user_prefs, "is_show_addon_new_version_info", text="Show")
+        row.prop(user_prefs, "is_show_addon_new_version_info", text="Show This Info")
 
 
 class HOTNODE_PT_edit(Panel):

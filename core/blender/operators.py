@@ -386,6 +386,33 @@ class HOTNODE_OT_overwrite_preset_with_selected_nodes(Operator):
     def invoke(self, context, event):
         return self.execute(context)
     
+    
+class HOTNODE_OT_overwrite_clipboard_preset(Operator):
+    bl_idname = "hotnode.overwrite_clipboard_preset"
+    bl_label = "Copy Selected Nodes"
+    bl_description = "Copy the currently selected nodes to Hot Node clipboard."
+    bl_translation_context = i18n_contexts.default
+    bl_options = {'REGISTER'}
+
+    @classmethod
+    def poll(cls, context):
+        return getattr(context.space_data, "edit_tree") is not None
+
+    def execute(self, context):
+        Reporter.set_active_ops(self)
+        
+        preset = Context.clipboard_preset
+        preset.overwrite(context, context.space_data.edit_tree)
+        preset.save()
+
+        Reporter.report_finish("Copied selected nodes to Hot Node clipboard.")
+        Reporter.set_active_ops(None)
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+
 class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
     bl_idname = "hotnode.add_preset_nodes_to_tree"
     bl_label = "Get Nodes"
@@ -412,6 +439,11 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
     
     is_new_tree: BoolProperty(
         name="new_tree",
+        default=False
+    ) # type: ignore
+    
+    is_paste_from_clipboard: BoolProperty(
+        name="past_from_clipboard",
         default=False
     ) # type: ignore
     
@@ -457,12 +489,18 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
         '''Add nodes to the node tree.'''
         Reporter.set_active_ops(self)
         uic = context.window_manager.hot_node_ui_context
-        pack = Context.packs[self.pack_name]
-        preset = pack.get_preset(self.preset_name)
+
+        if self.is_paste_from_clipboard:
+            preset = Context.clipboard_preset
+        else:
+            pack = Context.packs[self.pack_name]
+            preset = pack.get_preset(self.preset_name)
+
         if preset is None:
             Reporter.report_finish("Select a preset first.")
             Reporter.set_active_ops(None)
             return {'CANCELLED'}
+
         space = context.space_data
         deser_context = preset.get_deser_context()
         
@@ -507,7 +545,15 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
             Reporter.set_active_ops(None)
             return {'CANCELLED'}
         
-        if pack.is_preset_file_exist(preset):
+        if self.is_paste_from_clipboard:
+            try:
+                preset.deserialize(context, main_tree, is_new_tree)
+            except RuntimeError as e:
+                SS.sync()
+                Reporter.report_warning(f"{e} Hot Node refreshed.")
+                Reporter.set_active_ops(None)
+                return {'CANCELLED'}
+        elif pack.is_preset_file_exist(preset):
             try:
                 pack.add_preset_nodes_to_tree(context, preset, main_tree, is_new_tree)
             except RuntimeError as e:
@@ -1344,6 +1390,7 @@ classes = (
     HOTNODE_OT_remove_preset,
     HOTNODE_OT_order_preset,
     HOTNODE_OT_overwrite_preset_with_selected_nodes,
+    HOTNODE_OT_overwrite_clipboard_preset,
     HOTNODE_OT_add_preset_nodes_to_tree,
     HOTNODE_OT_transfer_preset_to_pack,
     HOTNODE_OT_create_pack,

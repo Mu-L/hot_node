@@ -77,19 +77,21 @@ class Preset():
     @property
     def path(self) -> Path:
         """Get the file path for the preset."""
+        if self.pack is None:
+            return self.fm.clipboard_preset_path
         return self.fm.packs_dir / self.pack.name / f"{self.name}.json"
-        
+
     def is_env_safe(self):
         return self.path.exists()
-        
+
     def save(self):
         self.jpreset["HN@meta"] = self.meta.serialize()
         self.fm.write_json(self.path, self.jpreset)
-        
+
     def load(self):
         self.jpreset = self.fm.read_json(self.path)
         self.meta.deserialize(self.jpreset.get("HN@meta", {}))
-        
+
     def serialize(self, bl_context, main_tree = None):
         self.jpreset = self.sm.serialize_preset(bl_context, main_tree)
         

@@ -14,6 +14,7 @@ class Context:
     # USE GET SET
     pack_selected: Pack = None
     preset_selected: Preset = None
+    clipboard_preset: Preset = None
     packs: dict[str, Pack] = {}
     ordered_packs: list[Pack] = []
     
@@ -28,6 +29,7 @@ class Context:
         """Initialize the context from disk safely."""
         cls.pack_selected: Pack = None # selected pack
         cls.preset_selected: Preset = None # selected preset in selected pack
+        cls.clipboard_preset: Preset = Preset("clipboard_preset", None)
         cls.packs: dict[str, Pack] = {}
         cls.fm.ensure_app_dir_structure()
         cls.load_packs_and_add()
@@ -45,6 +47,7 @@ class Context:
         """Reset the context, this will be called on Blender shutdown."""
         cls.pack_selected: Pack = None # selected pack
         cls.preset_selected: Preset = None # selected preset in selected pack
+        cls.clipboard_preset: Preset = Preset("clipboard_preset", None)
         cls.packs.clear()
         cls.trigger_packs_changed()
         cls.sm.reset()
