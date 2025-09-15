@@ -18,3 +18,23 @@
 *,Hot Node will try it
 *,Show
 *,it
+*,Show This Info
+*,Others
+*,\
+*,Autosave
+*,Paths
+*,Select the sheet to use
+*,Failed to set node: 
+*,Copy Nodes
+*,Paste Nodes
+*,UI Performance
+*,Undo & Redo
+*,Current blender version does not support node: 
+*,Sheet
+*,Keymaps
+*,Filter
+*,it
+*,Hot Node will try it
+*,Copied selected nodes to Hot Node clipboard.
+*,Paste nodes from Hot Node clipboard to the node tree.
+*,Copy the currently selected nodes to Hot Node clipboard.

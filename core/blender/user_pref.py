@@ -299,7 +299,7 @@ class HotNodeUserPrefs(AddonPreferences):
     
     prefs_ui_sheet: EnumProperty(
         name="Sheet",
-        description="Select the sheet to use",
+        description="Preferences sheet",
         items=[
             ('NODES_ADDING', "Nodes Adding", "Settings for adding nodes"),
             ('CUSTOMIZE', "Customize", "Settings for customizing the add-on"),

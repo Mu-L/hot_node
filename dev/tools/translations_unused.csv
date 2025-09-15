@@ -173,3 +173,50 @@
 *,"Packs are partially updated, please check the previous reports for details."
 *,Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.
 *,The directory path for textures.
+*,Show the button to load packs from legacy Hot Node version in the UI when there
+*,Duplicate / Copy / Move Preset
+*,Load and update all packs saved with previous versions of Hot Node.
+*,Show duplicate / copy / move preset button in the side bar.
+*,⚠ Maximize Compatibility
+*,Preferences
+*,Mode for displaying presets in the sidebar
+*,Maximize Compatibility
+*,"Recovered partially successfully, see the previous infos."
+*,it's more stable and flexible.
+*,Disable the save nodes menu.
+*,UI & Custom
+*,Show refresh button in the side bar.
+*,Pack
+*,Customize
+*,Only create new node tree if the node tree interface is different.
+*,Try to Reuse
+*,Show undo / redo button in the side bar.
+*,copied to
+*,List
+*,Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.
+*,(Will significantly increase file size and slow down the add-on) Maximize compatibility for presets to work fine with future versions of Blender.
+*,Show packs in the side bar to select.
+*,Show overwrite tree I/O toggle in the side bar.
+*,The directory path for textures.
+*,⚠ Development
+*,Preset List Mode
+*,Nodes Adding
+*,Hot Node will try it's best.
+*,Extend the context menu with a list of custom pack menu.
+*,"Imported partially successfully, see the previous infos."
+*,Show this button
+*,"Always create a new node tree, even if the two trees are the same."
+*,All packs are updated.
+*,"Packs are partially updated, please check the previous reports for details."
+*,Extend the add nodes menu with a list of custom pack menu.
+*,overwritten.
+*,Show preferences button in the side bar.
+*,Extend the context menu with a menu containing custom packs for saving nodes.
+*,Load & Update Legacy Packs
+*,Extend the add nodes menu with a menu containing custom packs.
+*,Show Load Legacy Packs Button
+*,moved to
+*,NodesPack
+*,Preset
+*,Always New
+*,Undo / Redo
