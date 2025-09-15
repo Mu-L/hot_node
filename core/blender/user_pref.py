@@ -13,7 +13,7 @@ from bpy.app.translations import pgettext_iface as iface_
 from ...utils import constants
 from ...utils.file_manager import FileManager
 from ...utils import utils
-from . import ui
+from . import ui, keymap
 from ...services.sync import SyncService as SS
 from ...services.history import HistoryService as HS
 from ...services.i18n import I18nService as IS
@@ -27,7 +27,7 @@ def translate_default_name(user_prefs: 'HotNodeUserPrefs'):
     if locale == "en_US":
         if (
             user_prefs.sidebar_category == "Hot Node"
-            and user_prefs.default_pack_name == "NodesPack"
+            and user_prefs.default_pack_name == "Nodes Pack"
             and user_prefs.default_preset_name == "Nodes"
             and user_prefs.merged_add_nodes_menu_label == "Add Nodes"
             and user_prefs.merged_save_nodes_menu_label == "Save Nodes"
@@ -39,9 +39,9 @@ def translate_default_name(user_prefs: 'HotNodeUserPrefs'):
     if user_prefs.sidebar_category in default_translated_names.values() and user_prefs.sidebar_category != default_translated_names.get(locale, "Hot Node"):
         user_prefs.sidebar_category = default_translated_names.get(locale, "Hot Node")
     
-    default_translated_names = IS.get_msg_from_all_locales("NodesPack")
+    default_translated_names = IS.get_msg_from_all_locales("Nodes Pack")
     if user_prefs.default_pack_name in default_translated_names.values() and user_prefs.default_pack_name != default_translated_names.get(locale, "NodesPack"):
-        user_prefs.default_pack_name = default_translated_names.get(locale, "NodesPack")
+        user_prefs.default_pack_name = default_translated_names.get(locale, "Nodes Pack")
     
     default_translated_names = IS.get_msg_from_all_locales("Nodes")
     if user_prefs.default_preset_name in default_translated_names.values() and user_prefs.default_preset_name != default_translated_names.get(locale, "Nodes"):
@@ -186,7 +186,7 @@ class HotNodeUserPrefs(AddonPreferences):
     default_pack_name: StringProperty(
         name="Default Pack Name",
         description="Name of the default pack for creating pack.",
-        default=IS.msg("NodesPack"),
+        default=IS.msg("Nodes Pack"),
     ) # type: ignore
     
     is_filter_pack_by_tree_type: BoolProperty(
@@ -296,85 +296,116 @@ class HotNodeUserPrefs(AddonPreferences):
         default=False,
         update=is_dev_update,
     ) # type: ignore
+    
+    prefs_ui_sheet: EnumProperty(
+        name="Sheet",
+        description="Select the sheet to use",
+        items=[
+            ('NODES_ADDING', "Nodes Adding", "Settings for adding nodes"),
+            ('CUSTOMIZE', "Customize", "Settings for customizing the add-on"),
+            ('DATA', "Data", "Settings for data management"),
+            ('KEYMAP', "Keymap", "Keymap settings"),
+            ('OTHERS', "Others", "Other settings"),
+        ],
+        default='NODES_ADDING',
+    ) # type: ignore
 
     def draw(self, context):
         layout = self.layout
+
+        row = layout.row(align=True)
+        row.prop(self, "prefs_ui_sheet", expand=True)
+        
         layout.use_property_split = True
         layout.use_property_decorate = False
+        
+        box = layout.box()
+        col = box.column()
 
-        # Nodes Adding
-        col = layout.column()
-        col.label(text="Nodes Adding")
-        col.prop(self, "is_overwrite_tree_io")
-        row = col.row(align=True)
-        row.prop(self, "node_tree_reuse_mode", expand=True)
-        col.separator()
-        sub = col.column(align=True)
-        iii = sub.row(align=True)
-        sub.prop(self, "dir_to_match_image", icon='FILE_IMAGE', placeholder="Directory to match images")
-        iii = sub.row(align=True)
-        iii.active = self.dir_to_match_image != ""
-        iii.prop(self, "image_name_filter", icon='FILTER', placeholder="Only match images having this key")
-
-        # UI & Custom
-        col.separator()
-        col.separator(type='LINE')
-        col.label(text="Customize")
-        col.prop(self, "sidebar_category")
-        
-        col.separator()
-        col.prop(self, "default_pack_name", text="Default Pack Name")
-        col.prop(self, "default_preset_name", text="Default Preset Name")
-        
-        col.separator()
-        col.prop(self, "is_filter_pack_by_tree_type")
-        
-        col.separator()
-        col.prop(self, "min_ui_list_length")
-        col.separator()
-        col.prop(self, "sidebar_items")
-        
-        col.separator()
-        sub = col.column(align=True)
-        iii = sub.row(align=True)
-        iii.prop(self, "add_nodes_menu_mode", expand=True)
-        if self.add_nodes_menu_mode == 'MERGE':
+        if self.prefs_ui_sheet == 'NODES_ADDING':
+            col.label(text="Node Tree")
+            col.prop(self, "is_overwrite_tree_io")
+            row = col.row(align=True)
+            row.prop(self, "node_tree_reuse_mode", expand=True)
+            
+            col.separator()
+            col.separator(type='LINE')
+            col.label(text="Image")
+            
+            sub = col.column(align=True)
             iii = sub.row(align=True)
-            iii.prop(self, "merged_add_nodes_menu_label", text="Merged Menu Label")
-
-        col.separator()
-        sub = col.column(align=True)
-        iii = sub.row(align=True)
-        iii.prop(self, "save_nodes_menu_mode", expand=True)
-        if self.save_nodes_menu_mode == 'MERGE':
+            sub.prop(self, "dir_to_match_image", icon='FILE_IMAGE', placeholder="Directory to match images")
             iii = sub.row(align=True)
-            iii.prop(self, "merged_save_nodes_menu_label", text="Merged Menu Label")
-        
-        # Data
-        col.separator()
-        col.separator(type='LINE')
-        col.label(text="Data")
-        col.prop(self, "autosave_retention_days", text="Autosave Retention Days")
-        
-        row = col.row(align=True, heading="Custom Undo Steps")
-        sub = row.row(align=True)
-        sub.prop(self, "is_use_custom_undo_steps", text="")
-        sub = sub.row(align=True)
-        sub.active = self.is_use_custom_undo_steps
-        sub.prop(self, "undo_steps", text="")
-        col.prop(self, "data_dir", icon='ASSET_MANAGER')
-        
-        # Others
-        col.separator()
-        col.separator(type='LINE')
-        col.label(text="Others")
-        col.prop(self, "is_show_addon_new_version_info")
+            iii.active = self.dir_to_match_image != ""
+            iii.prop(self, "image_name_filter", icon='FILTER', placeholder="Only match images having this key")
 
-        # Experimental
-        col.separator()
-        col.separator(type='LINE')
-        col.label(text="Experimental")
-        col.prop(self, "is_dev", text="⚠ Development Mode")
+        if self.prefs_ui_sheet == 'CUSTOMIZE':
+            col.label(text="Filter")
+            col.prop(self, "is_filter_pack_by_tree_type")
+            
+            col.separator()
+            col.separator(type='LINE')
+            col.label(text="UI Performance")
+            
+            col.prop(self, "sidebar_category")
+
+            col.separator()
+            col.prop(self, "default_pack_name", text="Default Pack Name")
+            col.prop(self, "default_preset_name", text="Default Preset Name")
+            
+            col.separator()
+            col.prop(self, "min_ui_list_length")
+            col.separator()
+            col.prop(self, "sidebar_items")
+            
+            col.separator()
+            sub = col.column(align=True)
+            iii = sub.row(align=True)
+            iii.prop(self, "add_nodes_menu_mode", expand=True)
+            if self.add_nodes_menu_mode == 'MERGE':
+                iii = sub.row(align=True)
+                iii.prop(self, "merged_add_nodes_menu_label", text="Merged Menu Label")
+
+            col.separator()
+            sub = col.column(align=True)
+            iii = sub.row(align=True)
+            iii.prop(self, "save_nodes_menu_mode", expand=True)
+            if self.save_nodes_menu_mode == 'MERGE':
+                iii = sub.row(align=True)
+                iii.prop(self, "merged_save_nodes_menu_label", text="Merged Menu Label")
+        
+        if self.prefs_ui_sheet == 'DATA':
+            col.label(text="Autosave")
+            col.prop(self, "autosave_retention_days", text="Autosave Retention Days")
+            
+            col.separator()
+            col.separator(type='LINE')
+            col.label(text="Undo & Redo")
+            
+            row = col.row(align=True, heading="Custom Undo Steps")
+            sub = row.row(align=True)
+            sub.prop(self, "is_use_custom_undo_steps", text="")
+            sub = sub.row(align=True)
+            sub.active = self.is_use_custom_undo_steps
+            sub.prop(self, "undo_steps", text="")
+            
+            col.separator()
+            col.separator(type='LINE')
+            col.label(text="Paths")
+            col.prop(self, "data_dir", icon='ASSET_MANAGER')
+        
+        if self.prefs_ui_sheet == 'KEYMAP':
+            col.label(text="Keymaps")
+            keymap.draw_kmis(col)
+            
+        if self.prefs_ui_sheet == 'OTHERS':
+            col.label(text="Others")
+            col.prop(self, "is_show_addon_new_version_info")
+            
+            col.separator()
+            col.separator(type='LINE')
+            col.label(text="Experimental")
+            col.prop(self, "is_dev", text="⚠ Development Mode")
 
 
 def register():

@@ -636,9 +636,8 @@ class HOTNODE_PT_main(Panel):
         ops.pack_name = pack_selected_name
         
         row = layout.row(align=True)
-        row.operator("hotnode.overwrite_clipboard_preset", icon='COPYDOWN', text="Copy Nodes")
-        ops = row.operator("hotnode.add_preset_nodes_to_tree", icon='PASTEDOWN', text="Paste Nodes")
-        ops.is_paste_from_clipboard = True
+        row.operator("hotnode.overwrite_clipboard_preset_with_selection", icon='COPYDOWN', text="Copy Nodes")
+        ops = row.operator("hotnode.add_clipboard_preset_nodes_to_tree", icon='PASTEDOWN', text="Paste Nodes")
         row.separator(factor=1.4)
         row.label(icon='BLANK1', text="")
     

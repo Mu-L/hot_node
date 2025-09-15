@@ -387,12 +387,18 @@ class HOTNODE_OT_overwrite_preset_with_selected_nodes(Operator):
         return self.execute(context)
     
     
-class HOTNODE_OT_overwrite_clipboard_preset(Operator):
-    bl_idname = "hotnode.overwrite_clipboard_preset"
-    bl_label = "Copy Selected Nodes"
+class HOTNODE_OT_overwrite_clipboard_preset_with_selection(Operator):
+    bl_idname = "hotnode.overwrite_clipboard_preset_with_selection"
+    bl_label = "Copy Nodes"
     bl_description = "Copy the currently selected nodes to Hot Node clipboard."
     bl_translation_context = i18n_contexts.default
     bl_options = {'REGISTER'}
+    
+    is_new_tree: BoolProperty(
+        name="new_tree",
+        default=False,
+        options={'HIDDEN'}
+    ) # type: ignore
 
     @classmethod
     def poll(cls, context):
@@ -411,42 +417,9 @@ class HOTNODE_OT_overwrite_clipboard_preset(Operator):
 
     def invoke(self, context, event):
         return self.execute(context)
-
-
-class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
-    bl_idname = "hotnode.add_preset_nodes_to_tree"
-    bl_label = "Get Nodes"
-    bl_description = "Get nodes from preset and add to the node tree."
-    bl_translation_context = i18n_contexts.default
-    bl_options = {'REGISTER', 'UNDO'}
     
-    # "" means use selected one in the UI
-    preset_name: StringProperty(
-        name="preset_name",
-        default=""
-    ) # type: ignore
     
-    # "" means use selected one in the UI
-    pack_name: StringProperty(
-        name="pack_name",
-        default=""
-    ) # type: ignore
-    
-    tree_type: StringProperty(
-        name="tree_type",
-        default=""
-    ) # type: ignore
-    
-    is_new_tree: BoolProperty(
-        name="new_tree",
-        default=False
-    ) # type: ignore
-    
-    is_paste_from_clipboard: BoolProperty(
-        name="past_from_clipboard",
-        default=False
-    ) # type: ignore
-    
+class HOTNODE_OT_add_preset_nodes_to_tree_base():
     @staticmethod
     def store_mouse_cursor(context: bpy.types.Context, event):
         space: bpy.types.SpaceNodeEditor = context.space_data
@@ -484,17 +457,48 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
                 and space.tree_type in (constants.GEOMETRY_NODE_TREE_IDNAME, constants.SHADER_NODE_TREE_IDNAME) # can add a new tree
             )
         )
+
+
+class HOTNODE_OT_add_preset_nodes_to_tree(HOTNODE_OT_add_preset_nodes_to_tree_base, Operator):
+    bl_idname = "hotnode.add_preset_nodes_to_tree"
+    bl_label = "Get Nodes"
+    bl_description = "Get nodes from preset and add to the node tree."
+    bl_translation_context = i18n_contexts.default
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    tree_type: StringProperty(
+        name="tree_type",
+        default="",
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    is_new_tree: BoolProperty(
+        name="new_tree",
+        default=False,
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    # "" means use selected one in the UI
+    preset_name: StringProperty(
+        name="preset_name",
+        default="",
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    # "" means use selected one in the UI
+    pack_name: StringProperty(
+        name="pack_name",
+        default="",
+        options={'HIDDEN'}
+    ) # type: ignore
     
     def execute(self, context):
         '''Add nodes to the node tree.'''
         Reporter.set_active_ops(self)
         uic = context.window_manager.hot_node_ui_context
 
-        if self.is_paste_from_clipboard:
-            preset = Context.clipboard_preset
-        else:
-            pack = Context.packs[self.pack_name]
-            preset = pack.get_preset(self.preset_name)
+        pack = Context.packs[self.pack_name]
+        preset = pack.get_preset(self.preset_name)
 
         if preset is None:
             Reporter.report_finish("Select a preset first.")
@@ -545,15 +549,7 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
             Reporter.set_active_ops(None)
             return {'CANCELLED'}
         
-        if self.is_paste_from_clipboard:
-            try:
-                preset.deserialize(context, main_tree, is_new_tree)
-            except RuntimeError as e:
-                SS.sync()
-                Reporter.report_warning(f"{e} Hot Node refreshed.")
-                Reporter.set_active_ops(None)
-                return {'CANCELLED'}
-        elif pack.is_preset_file_exist(preset):
+        if pack.is_preset_file_exist(preset):
             try:
                 pack.add_preset_nodes_to_tree(context, preset, main_tree, is_new_tree)
             except RuntimeError as e:
@@ -584,7 +580,103 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
 
         Reporter.set_active_ops(None)
         return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        if not self.is_new_tree:
+            self.store_mouse_cursor(context, event)
+        return self.execute(context)
 
+
+class HOTNODE_OT_add_clipboard_preset_nodes_to_tree(HOTNODE_OT_add_preset_nodes_to_tree_base, Operator):
+    bl_idname = "hotnode.add_clipboard_preset_nodes_to_tree"
+    bl_label = "Paste Nodes"
+    bl_description = "Paste nodes from Hot Node clipboard to the node tree."
+    bl_translation_context = i18n_contexts.default
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    is_new_tree: BoolProperty(
+        name="new_tree",
+        default=False,
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    def execute(self, context):
+        '''Add nodes to the node tree.'''
+        Reporter.set_active_ops(self)
+        uic = context.window_manager.hot_node_ui_context
+
+        preset = Context.clipboard_preset
+
+        space = context.space_data
+        deser_context = preset.get_deser_context()
+        
+        edit_tree: bpy.types.NodeTree = getattr(space, "edit_tree", None)
+        main_tree = edit_tree
+        is_new_tree = self.is_new_tree or main_tree is None
+        if is_new_tree:
+            deser_context.is_create_tree = True
+            space_tree_type = space.tree_type
+            if space_tree_type == constants.SHADER_NODE_TREE_IDNAME:
+                # new world
+                if hasattr(space, "shader_type") and space.shader_type == 'WORLD':
+                    world_name = utils.ensure_unique_name_for_item(preset.name, bpy.data.worlds)
+                    world = bpy.data.worlds.new(name=world_name)
+                    context.scene.world = world
+                    if hasattr(world, "use_nodes"):
+                        world.use_nodes = True # 5.0 dont have use_nodes attr
+                    context.scene.world = world
+                    main_tree = world.node_tree
+                # new material
+                else:
+                    mat_name = utils.ensure_unique_name_for_item(preset.name, bpy.data.materials)
+                    mat = bpy.data.materials.new(name=mat_name)
+                    mat.use_nodes = True
+                    obj = context.active_object
+                    obj.data.materials.append(mat)
+                    obj.active_material = mat
+                    main_tree = mat.node_tree
+            elif space_tree_type == constants.GEOMETRY_NODE_TREE_IDNAME:
+                # new modifier with geometry node tree
+                obj = context.active_object
+                mod_name = utils.ensure_unique_name_for_item(preset.name, obj.modifiers)
+                mod = obj.modifiers.new(name=mod_name, type='NODES')
+                geo_node_tree_name = utils.ensure_unique_name_for_item(preset.name, bpy.data.node_groups)
+                geo_node_tree = bpy.data.node_groups.new(name=geo_node_tree_name, type=constants.GEOMETRY_NODE_TREE_IDNAME)
+                mod.node_group = geo_node_tree
+                obj.modifiers.active = mod
+                main_tree = geo_node_tree
+
+        if preset.meta.tree_type != main_tree.bl_idname and preset.meta.tree_type != constants.UNIVERSAL_NODE_TREE_IDNAME:
+            Reporter.report_warning(iface_("The preset tree type does not match the current node tree type."))
+            Reporter.set_active_ops(None)
+            return {'CANCELLED'}
+        
+        try:
+            preset.deserialize(context, main_tree, is_new_tree)
+        except RuntimeError as e:
+            SS.sync()
+            Reporter.report_warning(f"{e} Hot Node refreshed.")
+            Reporter.set_active_ops(None)
+            return {'CANCELLED'}
+            
+        # call translate ops for moving nodes. escaping select NodeFrames because they will cause bugs in move ops. reselect them later.
+        new_nodes = deser_context.newed_main_tree_nodes
+        
+        if not new_nodes:
+            Reporter.report_finish(iface_("No nodes were added. The preset is empty."))
+            Reporter.set_active_ops(None)
+            return {'CANCELLED'}
+        
+        # attach nodes to mouse cursor
+        if edit_tree:
+            self.attach_nodes_to_cursor(deser_context.node_frames_with_children)
+            # activate single node
+            if len(new_nodes) == 1:
+                edit_tree.nodes.active = new_nodes[0]
+
+        Reporter.set_active_ops(None)
+        return {'FINISHED'}
+    
     def invoke(self, context, event):
         if not self.is_new_tree:
             self.store_mouse_cursor(context, event)
@@ -1390,8 +1482,9 @@ classes = (
     HOTNODE_OT_remove_preset,
     HOTNODE_OT_order_preset,
     HOTNODE_OT_overwrite_preset_with_selected_nodes,
-    HOTNODE_OT_overwrite_clipboard_preset,
+    HOTNODE_OT_overwrite_clipboard_preset_with_selection,
     HOTNODE_OT_add_preset_nodes_to_tree,
+    HOTNODE_OT_add_clipboard_preset_nodes_to_tree,
     HOTNODE_OT_transfer_preset_to_pack,
     HOTNODE_OT_create_pack,
     HOTNODE_OT_remove_pack,
